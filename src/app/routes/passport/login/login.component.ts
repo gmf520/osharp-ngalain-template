@@ -31,8 +31,8 @@ export class UserLoginComponent implements OnDestroy {
     private cdr: ChangeDetectorRef
   ) {
     this.form = fb.group({
-      userName: [null, [Validators.required, Validators.pattern(/^(admin|user)$/)]],
-      password: [null, [Validators.required, Validators.pattern(/^(ng\-alain\.com)$/)]],
+      userName: [null, [Validators.required, Validators.minLength(4)]],
+      password: [null, [Validators.required, Validators.minLength(6)]],
       mobile: [null, [Validators.required, Validators.pattern(/^1\d{10}$/)]],
       captcha: [null, [Validators.required]],
       remember: [true]

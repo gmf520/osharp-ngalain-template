@@ -3,7 +3,7 @@ import { Injectable, Inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ACLService } from '@delon/acl';
 import { DA_SERVICE_TOKEN, ITokenService } from '@delon/auth';
-import { ALAIN_I18N_TOKEN, MenuService, SettingsService, TitleService } from '@delon/theme';
+import { ALAIN_I18N_TOKEN, MenuService, SettingsService, TitleService, User } from '@delon/theme';
 import type { NzSafeAny } from 'ng-zorro-antd/core/types';
 import { NzIconService } from 'ng-zorro-antd/icon';
 import { Observable, zip, of, catchError, map } from 'rxjs';
@@ -11,6 +11,7 @@ import { Observable, zip, of, catchError, map } from 'rxjs';
 import { ICONS } from '../../../style-icons';
 import { ICONS_AUTO } from '../../../style-icons-auto';
 import { I18NService } from '../i18n/i18n.service';
+import { AppComponent } from './../../app.component';
 
 /**
  * Used for application startup
@@ -34,30 +35,49 @@ export class StartupService {
 
   private viaHttp(): Observable<void> {
     const defaultLang = this.i18n.defaultLang;
-    return zip(this.i18n.loadLangData(defaultLang), this.httpClient.get('assets/tmp/app-data.json')).pipe(
+    return zip(
+      this.i18n.loadLangData(defaultLang),
+      this.httpClient.get('assets/osharp/app-data.json'),
+      this.httpClient.get('api/common/systeminfo?_allow_anonymous=true'),
+      this.httpClient.get('api/auth/getauthinfo?_allow_anonymous=true'),
+      this.httpClient.get('api/identity/profile?_allow_anonymous=true')
+    ).pipe(
       catchError((res: NzSafeAny) => {
         console.warn(`StartupService.load: Network request failed`, res);
         setTimeout(() => this.router.navigateByUrl(`/exception/500`));
         return [];
       }),
-      map(([langData, appData]: [Record<string, string>, NzSafeAny]) => {
+      map(([langData, appData, sysInfo, autoInfo, userInfo]: [Record<string, string>, NzSafeAny, NzSafeAny, NzSafeAny, NzSafeAny]) => {
         // setting language data
         this.i18n.use(defaultLang, langData);
 
         // Application data
         // Application information: including site name, description, year
+        const res: any = appData;
+        if (res && res.app) {
+          res.app.cliVersion = sysInfo.Object.CliVersion;
+          res.app.osharpVersion = sysInfo.Object.OSharpVersion;
+        }
         this.settingService.setApp(appData.app);
         // User information: including name, avatar, email address
+        if (userInfo && userInfo.UserName) {
+          let user: User = { name: userInfo.UserName, avatar: userInfo.HeadImg, email: userInfo.Email, nickName: userInfo.NickName };
+          this.settingService.setUser(user);
+        }
         this.settingService.setUser(appData.user);
         // ACL: Set the permissions to full, https://ng-alain.com/acl/getting-started
-        this.aclService.setFull(true);
+        // this.aclService.setFull(true);
+        this.aclService.setAbility(autoInfo);
         // Menu data, https://ng-alain.com/theme/menu
         this.menuService.add(appData.menu);
         // Can be set page suffix title, https://ng-alain.com/theme/title
         this.titleService.suffix = appData.app.name;
+        console.log(this.settingService);
       })
     );
   }
+
+  private viaHeartbeats() {}
 
   private viaMockI18n(): Observable<void> {
     const defaultLang = this.i18n.defaultLang;
@@ -83,7 +103,7 @@ export class StartupService {
     };
     const user: any = {
       name: 'Admin',
-      avatar: './assets/tmp/img/avatar.jpg',
+      avatar: './assets/osharp/img/avatar.jpg',
       email: 'cipchk@qq.com',
       token: '123456789'
     };
@@ -115,9 +135,11 @@ export class StartupService {
 
   load(): Observable<void> {
     // http
-    // return this.viaHttp();
+    return this.viaHttp();
+    // heartbeats
+    this.viaHeartbeats();
     // mock: Don’t use it in a production environment. ViaMock is just to simulate some data to make the scaffolding work normally
     // mock：请勿在生产环境中这么使用，viaMock 单纯只是为了模拟一些数据使脚手架一开始能正常运行
-    return this.viaMockI18n();
+    // return this.viaMockI18n();
   }
 }

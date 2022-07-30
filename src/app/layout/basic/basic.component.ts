@@ -72,8 +72,8 @@ import { environment } from '@env/environment';
 })
 export class LayoutBasicComponent {
   options: LayoutDefaultOptions = {
-    logoExpanded: `./assets/logo-full.svg`,
-    logoCollapsed: `./assets/logo.svg`
+    logoExpanded: `./assets/osharp/logo-full.svg`,
+    logoCollapsed: `./assets/osharp/logo.svg`
   };
   searchToggleStatus = false;
   showSettingDrawer = !environment.production;
