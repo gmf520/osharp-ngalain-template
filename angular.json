@@ -74,7 +74,9 @@
               "ajv",
               "ajv-formats",
               "date-fns",
-              "file-saver"
+              "file-saver",
+              "buffer",
+              "linqts",
             ],
             "stylePreprocessorOptions": {
               "includePaths": [

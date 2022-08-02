@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, OnDestroy, Optional } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Inject, Injector, OnDestroy, Optional } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { StartupService } from '@core';
@@ -6,8 +6,12 @@ import { ReuseTabService } from '@delon/abc/reuse-tab';
 import { DA_SERVICE_TOKEN, ITokenService, SocialOpenType, SocialService } from '@delon/auth';
 import { SettingsService, _HttpClient } from '@delon/theme';
 import { environment } from '@env/environment';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzTabChangeEvent } from 'ng-zorro-antd/tabs';
-import { finalize } from 'rxjs';
+import { finalize, catchError, EMPTY } from 'rxjs';
+import { AjaxResultType, AuthConfig, TokenDto } from 'src/app/shared/osharp/osharp.types';
+import { ComponentBase } from 'src/app/shared/osharp/services/componentBase';
+import { IdentityService } from 'src/app/shared/osharp/services/identity.service';
 
 @Component({
   selector: 'passport-login',
@@ -16,7 +20,7 @@ import { finalize } from 'rxjs';
   providers: [SocialService],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class UserLoginComponent implements OnDestroy {
+export class UserLoginComponent extends ComponentBase implements OnDestroy {
   constructor(
     fb: FormBuilder,
     private router: Router,
@@ -28,18 +32,30 @@ export class UserLoginComponent implements OnDestroy {
     @Inject(DA_SERVICE_TOKEN) private tokenService: ITokenService,
     private startupSrv: StartupService,
     private http: _HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public msg: NzMessageService,
+    private identity: IdentityService,
+    injector: Injector
   ) {
+    super(injector);
     this.form = fb.group({
-      userName: [null, [Validators.required, Validators.minLength(4)]],
-      password: [null, [Validators.required, Validators.minLength(6)]],
+      userName: ['osharp', [Validators.required, Validators.minLength(4)]],
+      password: ['osharp123456', [Validators.required, Validators.minLength(6)]],
       mobile: [null, [Validators.required, Validators.pattern(/^1\d{10}$/)]],
       captcha: [null, [Validators.required]],
       remember: [true]
     });
   }
 
+  protected AuthConfig(): AuthConfig {
+    return new AuthConfig('Root.Site.Identity', ['Login', 'Jwtoken', 'Register', 'SendResetPasswordMail', 'SendConfirmMail']);
+  }
+
   // #region fields
+
+  public get Http(): _HttpClient {
+    return this.identity.http;
+  }
 
   get userName(): AbstractControl {
     return this.form.get('userName')!;
@@ -57,13 +73,10 @@ export class UserLoginComponent implements OnDestroy {
   error = '';
   type = 0;
   loading = false;
-
-  // #region get captcha
+  resendConfirmMail = false;
 
   count = 0;
   interval$: any;
-
-  // #endregion
 
   switch({ index }: NzTabChangeEvent): void {
     this.type = index!;
@@ -88,60 +101,59 @@ export class UserLoginComponent implements OnDestroy {
 
   submit(): void {
     this.error = '';
+    const dto: TokenDto = { grantType: 'password' };
     if (this.type === 0) {
       this.userName.markAsDirty();
       this.userName.updateValueAndValidity();
       this.password.markAsDirty();
       this.password.updateValueAndValidity();
-      if (this.userName.invalid || this.password.invalid) {
-        return;
-      }
+      if (this.userName.invalid || this.password.invalid) return;
+      dto.account = this.userName.value;
+      dto.password = this.password.value;
     } else {
       this.mobile.markAsDirty();
       this.mobile.updateValueAndValidity();
       this.captcha.markAsDirty();
       this.captcha.updateValueAndValidity();
-      if (this.mobile.invalid || this.captcha.invalid) {
-        return;
-      }
+      if (this.mobile.invalid || this.captcha.invalid) return;
+      dto.account = this.mobile.value;
+      dto.password = this.captcha.value;
     }
 
     // 默认配置中对所有HTTP请求都会强制 [校验](https://ng-alain.com/auth/getting-started) 用户 Token
     // 然一般来说登录请求不需要校验，因此可以在请求URL加上：`/login?_allow_anonymous=true` 表示不触发用户 Token 校验
     this.loading = true;
     this.cdr.detectChanges();
-    this.http
-      .post('/login/account?_allow_anonymous=true', {
-        type: this.type,
-        userName: this.userName.value,
-        password: this.password.value
-      })
+
+    this.identity
+      .token(dto)
       .pipe(
+        catchError(e => {
+          this.error = `发生错误：${e.statusText}`;
+          this.cdr.detectChanges();
+          return EMPTY;
+        }),
         finalize(() => {
           this.loading = false;
           this.cdr.detectChanges();
         })
       )
-      .subscribe(res => {
-        if (res.msg !== 'ok') {
-          this.error = res.msg;
-          this.cdr.detectChanges();
+      .subscribe(result => {
+        if (this.osharp.isSuccessResult(result)) {
+          this.msg.success('用户登录成功');
+          // 重新获取 StartupService 内容，我们始终认为应用信息一般都会受当前用户授权范围而影响
+          this.startupSrv.load().subscribe(() => {
+            let url = this.tokenService.referrer?.url ?? '/';
+            if (url.includes('/passport')) {
+              url = '/';
+            }
+            this.router.navigateByUrl(url);
+          });
           return;
         }
-        // 清空路由复用信息
-        this.reuseTabService.clear();
-        // 设置用户Token信息
-        // TODO: Mock expired value
-        res.user.expired = +new Date() + 1000 * 60 * 5;
-        this.tokenService.set(res.user);
-        // 重新获取 StartupService 内容，我们始终认为应用信息一般都会受当前用户授权范围而影响
-        this.startupSrv.load().subscribe(() => {
-          let url = this.tokenService.referrer!.url || '/';
-          if (url.includes('/passport')) {
-            url = '/';
-          }
-          this.router.navigateByUrl(url);
-        });
+        this.error = `登录失败：${result.content}`;
+        this.resendConfirmMail = result.content?.includes('邮箱未验证') ?? false;
+        this.cdr.detectChanges();
       });
   }
 

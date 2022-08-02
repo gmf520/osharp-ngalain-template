@@ -1,6 +1,6 @@
 /* eslint-disable import/order */
 import { ModuleWithProviders, NgModule, Optional, SkipSelf } from '@angular/core';
-import { DelonACLModule } from '@delon/acl';
+import { ACLCanType, ACLType, DelonACLModule } from '@delon/acl';
 import { AlainThemeModule } from '@delon/theme';
 import { AlainConfig, ALAIN_CONFIG } from '@delon/util/config';
 
@@ -18,7 +18,35 @@ const alainConfig: AlainConfig = {
     license: `A59B099A586B3851E0F0D7FDBF37B603`,
     licenseA: `C94CEE276DB2187AE6B65D56B3FC2848`
   },
-  auth: { login_url: '/passport/login' }
+  auth: { login_url: '/passport/login', ignores: [/assets\//, /passport\//, /api\/(?!admin)[\w_-]+\/\S*/] },
+  acl: {
+    guard_url: '/exception/403',
+    preCan: (roleOrAbility: ACLCanType) => {
+      function isAbility(val: string) {
+        return val && val.startsWith('Root.');
+      }
+
+      // 单个字符串，可能是角色也可能是功能点
+      if (typeof roleOrAbility === 'string') {
+        return isAbility(roleOrAbility) ? { ability: [roleOrAbility] } : { role: [roleOrAbility] };
+      }
+
+      // 字符串集合，每项可能是角色或是功能点，逐个处理每项
+      if (Array.isArray(roleOrAbility) && roleOrAbility.length > 0 && typeof roleOrAbility[0] === 'string') {
+        const abilities: string[] = [];
+        const roles: string[] = [];
+        const type: ACLType = {};
+        (roleOrAbility as string[]).forEach((val: string) => {
+          if (isAbility(val)) abilities.push(val);
+          else roles.push(val);
+        });
+        type.role = roles.length > 0 ? roles : undefined;
+        type.ability = abilities.length > 0 ? abilities : undefined;
+        return type;
+      }
+      return roleOrAbility as ACLType;
+    }
+  }
 };
 
 const alainModules: any[] = [AlainThemeModule.forRoot(), DelonACLModule.forRoot()];

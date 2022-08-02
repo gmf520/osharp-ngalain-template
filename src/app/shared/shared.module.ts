@@ -6,19 +6,20 @@ import { DelonACLModule } from '@delon/acl';
 import { DelonFormModule } from '@delon/form';
 import { AlainThemeModule } from '@delon/theme';
 
+import { OsharpModule } from './osharp/osharp.module';
 import { SHARED_DELON_MODULES } from './shared-delon.module';
 import { SHARED_ZORRO_MODULES } from './shared-zorro.module';
 
 // #region third libs
 
-const THIRDMODULES: Array<Type<void>> = [];
+const THIRDMODULES = [OsharpModule];
 
 // #endregion
 
 // #region your componets & directives
 
-const COMPONENTS: Array<Type<void>> = [];
-const DIRECTIVES: Array<Type<void>> = [];
+const COMPONENTS: Array<Type<any>> = [];
+const DIRECTIVES: Array<Type<any>> = [];
 
 // #endregion
 

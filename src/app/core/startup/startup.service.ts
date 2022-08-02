@@ -11,7 +11,6 @@ import { Observable, zip, of, catchError, map } from 'rxjs';
 import { ICONS } from '../../../style-icons';
 import { ICONS_AUTO } from '../../../style-icons-auto';
 import { I18NService } from '../i18n/i18n.service';
-import { AppComponent } from './../../app.component';
 
 /**
  * Used for application startup
@@ -38,9 +37,9 @@ export class StartupService {
     return zip(
       this.i18n.loadLangData(defaultLang),
       this.httpClient.get('assets/osharp/app-data.json'),
-      this.httpClient.get('api/common/systeminfo?_allow_anonymous=true'),
-      this.httpClient.get('api/auth/getauthinfo?_allow_anonymous=true'),
-      this.httpClient.get('api/identity/profile?_allow_anonymous=true')
+      this.httpClient.get('api/common/systeminfo'),
+      this.httpClient.get('api/auth/getauthinfo'),
+      this.httpClient.get('api/identity/profile')
     ).pipe(
       catchError((res: NzSafeAny) => {
         console.warn(`StartupService.load: Network request failed`, res);

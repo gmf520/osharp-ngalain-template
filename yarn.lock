@@ -7371,10 +7371,10 @@ ng-alain-plugin-theme@^13.0.3:
     postcss "^7.0.0"
     strip-css-comments "^4.1.0"
 
-ng-alain@13.5.1:
-  version "13.5.1"
-  resolved "https://registry.npmmirror.com/ng-alain/-/ng-alain-13.5.1.tgz#e92eb51a78ef2790ca48846ab54faf136997123f"
-  integrity sha512-QoBartjv2SveVSyTaXWLcf7uxLq6/t+lLxZsVDXaGyEzn8NvV+P6aiz2acNHwlXVhVXn+dxK9PvHKBpiG3onrw==
+ng-alain@13.5.2:
+  version "13.5.2"
+  resolved "https://registry.npmmirror.com/ng-alain/-/ng-alain-13.5.2.tgz#0f6be52f37e6fde6686846b28ec7e19e4b56ca9f"
+  integrity sha512-JhFZfGam6WCLb9oiGWHTCA/Ocvihijee7KJH/RCHW7Wyy76d0q0jKfdH9EfwJjDltp56mYGQgwRsH6Sdzbn9JQ==
   dependencies:
     swagger-typescript-api "^9.3.1"
 

@@ -130,7 +130,7 @@ export class DefaultInterceptor implements HttpInterceptor {
     const token = this.tokenSrv.get()?.token;
     return req.clone({
       setHeaders: {
-        token: `Bearer ${token}`
+        Authorization: `Bearer ${token}`
       }
     });
   }
