@@ -1,9 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { NgModule, Type } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-import { IdentityService } from './services/identity.service';
-import { OsharpService } from './services/osharp.services';
+import { IdentityService, OsharpService } from '@osharp';
 
 const DIRECTIVES: Array<Type<any>> = [];
 const COMPONENTS: Array<Type<any>> = [];

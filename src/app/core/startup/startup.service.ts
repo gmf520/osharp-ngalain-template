@@ -6,11 +6,13 @@ import { DA_SERVICE_TOKEN, ITokenService } from '@delon/auth';
 import { ALAIN_I18N_TOKEN, MenuService, SettingsService, TitleService, User } from '@delon/theme';
 import type { NzSafeAny } from 'ng-zorro-antd/core/types';
 import { NzIconService } from 'ng-zorro-antd/icon';
-import { Observable, zip, of, catchError, map } from 'rxjs';
+import { Observable, zip, of, catchError, map, switchMap } from 'rxjs';
+import { IdentityService } from 'src/app/shared/osharp/services/identity.service';
 
 import { ICONS } from '../../../style-icons';
 import { ICONS_AUTO } from '../../../style-icons-auto';
 import { I18NService } from '../i18n/i18n.service';
+import { AjaxResult } from './../../shared/osharp/osharp.types';
 
 /**
  * Used for application startup
@@ -27,7 +29,8 @@ export class StartupService {
     private titleService: TitleService,
     @Inject(DA_SERVICE_TOKEN) private tokenService: ITokenService,
     private httpClient: HttpClient,
-    private router: Router
+    private router: Router,
+    private identity: IdentityService
   ) {
     iconSrv.addIcon(...ICONS_AUTO, ...ICONS);
   }
@@ -54,29 +57,28 @@ export class StartupService {
         // Application information: including site name, description, year
         const res: any = appData;
         if (res && res.app) {
-          res.app.cliVersion = sysInfo.Object.CliVersion;
-          res.app.osharpVersion = sysInfo.Object.OSharpVersion;
+          res.app.cliVersion = sysInfo.Object.cliVersion;
+          res.app.osharpVersion = sysInfo.Object.osharpVersion;
         }
-        this.settingService.setApp(appData.app);
+        this.settingService.setApp(res.app);
         // User information: including name, avatar, email address
-        if (userInfo && userInfo.UserName) {
-          let user: User = { name: userInfo.UserName, avatar: userInfo.HeadImg, email: userInfo.Email, nickName: userInfo.NickName };
-          this.settingService.setUser(user);
+        if (userInfo && userInfo.userName) {
+          let user: User = { name: userInfo.userName, avatar: userInfo.headImg, email: userInfo.email, nickName: userInfo.nickName };
+          res.user = user;
+        } else {
+          res.user = {};
         }
-        this.settingService.setUser(appData.user);
+        this.settingService.setUser(res.user);
         // ACL: Set the permissions to full, https://ng-alain.com/acl/getting-started
         // this.aclService.setFull(true);
         this.aclService.setAbility(autoInfo);
         // Menu data, https://ng-alain.com/theme/menu
-        this.menuService.add(appData.menu);
+        this.menuService.add(res.menu);
         // Can be set page suffix title, https://ng-alain.com/theme/title
-        this.titleService.suffix = appData.app.name;
-        console.log(this.settingService);
+        this.titleService.suffix = res.app.name;
       })
     );
   }
-
-  private viaHeartbeats() {}
 
   private viaMockI18n(): Observable<void> {
     const defaultLang = this.i18n.defaultLang;
@@ -134,9 +136,12 @@ export class StartupService {
 
   load(): Observable<void> {
     // http
-    return this.viaHttp();
-    // heartbeats
-    this.viaHeartbeats();
+    return this.identity.refreshToken().pipe(
+      switchMap(() => {
+        return this.viaHttp();
+      })
+    );
+    //return this.viaHttp();
     // mock: Don’t use it in a production environment. ViaMock is just to simulate some data to make the scaffolding work normally
     // mock：请勿在生产环境中这么使用，viaMock 单纯只是为了模拟一些数据使脚手架一开始能正常运行
     // return this.viaMockI18n();

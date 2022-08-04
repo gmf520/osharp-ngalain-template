@@ -3,11 +3,10 @@ import { Router } from '@angular/router';
 import { ACLService } from '@delon/acl';
 import { ErrorData } from '@delon/form';
 import { _HttpClient } from '@delon/theme';
+import { AjaxResult, AjaxResultType, FilterOperate, FilterOperateEntry, ListNode, VerifyCode } from '@osharp';
 import { List } from 'linqts';
 import { NzMessageDataOptions, NzMessageService } from 'ng-zorro-antd/message';
 import { Observable, map, lastValueFrom, of } from 'rxjs';
-
-import { AjaxResult, AjaxResultType, AuthConfig, FilterOperate, FilterOperateEntry, ListNode, VerifyCode } from '../osharp.types';
 
 import { Buffer } from 'buffer';
 
@@ -221,7 +220,7 @@ export class OsharpService {
    * @param onFail 失败后的调用
    */
   ajaxResult(res: any, onSuccess?: () => void, onFail?: () => void) {
-    if (!res || !res.Type) {
+    if (!res || !res.type) {
       return;
     }
     const result = res as AjaxResult;

@@ -30,6 +30,9 @@
       ],
       "@env/*": [
         "src/environments/*"
+      ],
+      "@osharp":[
+        "src/app/shared/osharp/index"
       ]
     }
   },

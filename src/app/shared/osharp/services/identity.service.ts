@@ -5,8 +5,6 @@ import { ACLService } from '@delon/acl';
 import { DA_SERVICE_TOKEN, ITokenModel, ITokenService, JWTTokenModel } from '@delon/auth';
 import { CacheService } from '@delon/cache';
 import { SettingsService, _HttpClient, MenuService, User } from '@delon/theme';
-import { zip, catchError, Observable, map, lastValueFrom } from 'rxjs';
-
 import {
   AdResult,
   AjaxResult,
@@ -20,9 +18,10 @@ import {
   ResetPasswordDto,
   SendMailDto,
   TokenDto,
-  UserLoginInfoEx
-} from '../osharp.types';
-import { OsharpService } from './osharp.services';
+  UserLoginInfoEx,
+  OsharpService
+} from '@osharp';
+import { zip, catchError, Observable, map, lastValueFrom, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class IdentityService {
@@ -140,9 +139,9 @@ export class IdentityService {
       seconds = Math.round((token.refreshUctExpires - seconds) / 1000);
 
       let model: ITokenModel = { token: token?.accessToken };
-      if (seconds > 0) {
+      if (seconds > 10) {
         //this.cache.set('refresh_token', token.refreshToken, { expire: seconds });
-        model.expired = seconds * 1000;
+        model.expired = token.refreshUctExpires;
         model['refresh_token'] = token.refreshToken;
       }
       this.tokenSrv.set(model);
@@ -158,9 +157,17 @@ export class IdentityService {
     return accessToken;
   }
 
-  getRefreshToken(): string {
-    const refreshToken = this.cache.getNone<string>('refresh_token');
-    return refreshToken;
+  isRefreshTokenExpired(accessToken?: JWTTokenModel): boolean {
+    const at = accessToken ?? this.getAccessToken();
+    return at.expired! < new Date().valueOf();
+  }
+
+  getRefreshToken(): string | null {
+    const at = this.getAccessToken();
+    if (this.isRefreshTokenExpired(at)) {
+      return null;
+    }
+    return at['refresh_token'] as string;
   }
 
   /**
@@ -188,9 +195,14 @@ export class IdentityService {
    *
    * @param refreshToken 现有的RefreshToken
    */
-  refreshToken(refreshToken: string) {
+  refreshToken(refreshToken?: string): Observable<AjaxResult> {
+    const token = refreshToken ?? this.getRefreshToken();
+    if (!token) {
+      const result: AjaxResult = { type: AjaxResultType.Error };
+      return of(result);
+    }
     // 使用RefreshToken刷新AccessToken
-    const dto: TokenDto = { refreshToken: refreshToken, grantType: 'refresh_token' };
+    const dto: TokenDto = { refreshToken: token, grantType: 'refresh_token' };
     return this.http.post<AjaxResult>('api/identity/token', dto).pipe(
       map(result => {
         if (this.osharp.isSuccessResult(result)) {
@@ -238,19 +250,19 @@ export class IdentityService {
     const url = 'api/identity/profile';
     return this.http.get(url).pipe(
       map((res: any) => {
-        if (!res || res === {}) {
+        if (!res || !res.userName) {
           this.settingSrv.setUser({});
           this.aclSrv.setRole([]);
           return {};
         }
         const user: User = {
-          id: res.Id,
-          name: res.UserName,
-          nickName: res.NickName,
-          avatar: res.HeadImg,
-          email: res.Email,
-          roles: res.Roles,
-          isAdmin: res.IsAdmin
+          id: res.id,
+          name: res.userName,
+          nickName: res.nickName,
+          avatar: res.headImg,
+          email: res.email,
+          roles: res.roles,
+          isAdmin: res.isAdmin
         };
         this.settingSrv.setUser(user);
         // 更新角色

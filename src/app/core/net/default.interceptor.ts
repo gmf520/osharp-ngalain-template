@@ -5,6 +5,7 @@ import {
   HttpHeaders,
   HttpInterceptor,
   HttpRequest,
+  HttpResponse,
   HttpResponseBase
 } from '@angular/common/http';
 import { Injectable, Injector } from '@angular/core';
@@ -12,8 +13,12 @@ import { Router } from '@angular/router';
 import { DA_SERVICE_TOKEN, ITokenService } from '@delon/auth';
 import { ALAIN_I18N_TOKEN, _HttpClient } from '@delon/theme';
 import { environment } from '@env/environment';
+import { AjaxResult, AjaxResultType, OsharpService } from '@osharp';
 import { NzNotificationService } from 'ng-zorro-antd/notification';
 import { BehaviorSubject, Observable, of, throwError, catchError, filter, mergeMap, switchMap, take } from 'rxjs';
+import { IdentityService } from 'src/app/shared/osharp/services/identity.service';
+
+import { JsonWebToken } from './../../shared/osharp/osharp.types';
 
 const CODEMESSAGE: { [key: number]: string } = {
   200: '服务器成功返回请求的数据。',
@@ -57,8 +62,12 @@ export class DefaultInterceptor implements HttpInterceptor {
     return this.injector.get(DA_SERVICE_TOKEN);
   }
 
-  private get http(): _HttpClient {
-    return this.injector.get(_HttpClient);
+  private get identity(): IdentityService {
+    return this.injector.get(IdentityService);
+  }
+
+  private get osharp(): OsharpService {
+    return this.injector.get(OsharpService);
   }
 
   private goTo(url: string): void {
@@ -77,45 +86,48 @@ export class DefaultInterceptor implements HttpInterceptor {
   /**
    * 刷新 Token 请求
    */
-  private refreshTokenRequest(): Observable<any> {
-    const model = this.tokenSrv.get();
-    return this.http.post(`/api/auth/refresh`, null, null, { headers: { refresh_token: model?.['refresh_token'] || '' } });
+  private refreshTokenRequest(): Observable<AjaxResult> {
+    return this.identity.refreshToken();
   }
 
   // #region 刷新Token方式一：使用 401 重新刷新 Token
 
   private tryRefreshToken(ev: HttpResponseBase, req: HttpRequest<any>, next: HttpHandler): Observable<any> {
     // 1、若请求为刷新Token请求，表示来自刷新Token可以直接跳转登录页
-    if ([`/api/auth/refresh`].some(url => req.url.includes(url))) {
+    if ([`/api/identity/token`].some(url => req.url.includes(url))) {
       this.toLogin();
       return throwError(ev);
     }
     // 2、如果 `refreshToking` 为 `true` 表示已经在请求刷新 Token 中，后续所有请求转入等待状态，直至结果返回后再重新发起请求
-    if (this.refreshToking) {
-      return this.refreshToken$.pipe(
-        filter(v => !!v),
-        take(1),
-        switchMap(() => next.handle(this.reAttachToken(req)))
+    if (!this.refreshToking) {
+      this.refreshToking = true;
+      this.refreshToken$.next(null);
+      return this.refreshTokenRequest().pipe(
+        switchMap(result => {
+          this.refreshToking = false;
+          if (result && result.type == AjaxResultType.Success) {
+            //刷新成功
+            let token: JsonWebToken = result.data as JsonWebToken;
+            let at = token.accessToken;
+            this.refreshToken$.next(at);
+            req = this.reAttachToken(req, at);
+            return next.handle(req);
+          }
+          return of(ev);
+        }),
+        catchError(err => {
+          this.refreshToking = false;
+          this.toLogin();
+          return throwError(() => new Error(err));
+        })
       );
     }
-    // 3、尝试调用刷新 Token
-    this.refreshToking = true;
-    this.refreshToken$.next(null);
-
-    return this.refreshTokenRequest().pipe(
-      switchMap(res => {
-        // 通知后续请求继续执行
-        this.refreshToking = false;
-        this.refreshToken$.next(res);
-        // 重新保存新 token
-        this.tokenSrv.set(res);
-        // 重新发起请求
-        return next.handle(this.reAttachToken(req));
-      }),
-      catchError(err => {
-        this.refreshToking = false;
-        this.toLogin();
-        return throwError(err);
+    return this.refreshToken$.pipe(
+      filter(v => !!v),
+      take(1),
+      switchMap(at => {
+        req = this.reAttachToken(req, at);
+        return next.handle(req);
       })
     );
   }
@@ -125,9 +137,9 @@ export class DefaultInterceptor implements HttpInterceptor {
    *
    * > 由于已经发起的请求，不会再走一遍 `@delon/auth` 因此需要结合业务情况重新附加新的 Token
    */
-  private reAttachToken(req: HttpRequest<any>): HttpRequest<any> {
+  private reAttachToken(req: HttpRequest<any>, token: string): HttpRequest<any> {
     // 以下示例是以 NG-ALAIN 默认使用 `SimpleInterceptor`
-    const token = this.tokenSrv.get()?.token;
+    // const token = this.tokenSrv.get()?.token;
     return req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -154,10 +166,7 @@ export class DefaultInterceptor implements HttpInterceptor {
       )
       .subscribe(
         res => {
-          // TODO: Mock expired value
-          res.expired = +new Date() + 1000 * 60 * 5;
           this.refreshToking = false;
-          this.tokenSrv.set(res);
         },
         () => this.toLogin()
       );
@@ -175,6 +184,29 @@ export class DefaultInterceptor implements HttpInterceptor {
     // 业务处理：一些通用操作
     switch (ev.status) {
       case 200:
+        if (ev instanceof HttpResponse) {
+          const result = ev.body as AjaxResult;
+          if (result && result.type) {
+            switch (result.type) {
+              case AjaxResultType.Success:
+              case AjaxResultType.Info:
+              case AjaxResultType.Locked:
+                return of(ev);
+              case AjaxResultType.UnAuth:
+                this.toLogin();
+                break;
+              case AjaxResultType.Error:
+                this.osharp.ajaxResult(result);
+                break;
+              default:
+                const type = result.type as number;
+                this.osharp.ajaxResult(result);
+                this.osharp.goto(`/exception/${type}`);
+                break;
+            }
+          }
+        }
+
         // 业务层级错误处理，以下是假定restful有一套统一输出格式（指不管成功与否都有相应的数据格式）情况下进行处理
         // 例如响应内容：
         //  错误内容：{ status: 1, msg: '非法参数' }
@@ -208,7 +240,7 @@ export class DefaultInterceptor implements HttpInterceptor {
       case 403:
       case 404:
       case 500:
-        // this.goTo(`/exception/${ev.status}?url=${req.urlWithParams}`);
+        this.goTo(`/exception/${ev.status}?url=${req.urlWithParams}`);
         break;
       default:
         if (ev instanceof HttpErrorResponse) {
@@ -216,11 +248,12 @@ export class DefaultInterceptor implements HttpInterceptor {
             '未可知错误，大部分是由于后端不支持跨域CORS或无效配置引起，请参考 https://ng-alain.com/docs/server 解决跨域问题',
             ev
           );
+          return throwError(() => new Error(ev.message));
         }
         break;
     }
     if (ev instanceof HttpErrorResponse) {
-      return throwError(ev);
+      return throwError(() => new Error(ev.message));
     } else {
       return of(ev);
     }

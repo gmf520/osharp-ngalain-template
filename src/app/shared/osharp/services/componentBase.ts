@@ -1,9 +1,7 @@
 import { Injector } from '@angular/core';
+import { AuthConfig, OsharpService } from '@osharp';
 import { List } from 'linqts';
 import { lastValueFrom } from 'rxjs';
-
-import { AuthConfig } from '../osharp.types';
-import { OsharpService } from './osharp.services';
 
 export abstract class ComponentBase {
   protected osharp: OsharpService;

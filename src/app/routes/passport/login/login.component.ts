@@ -6,12 +6,10 @@ import { ReuseTabService } from '@delon/abc/reuse-tab';
 import { DA_SERVICE_TOKEN, ITokenService, SocialOpenType, SocialService } from '@delon/auth';
 import { SettingsService, _HttpClient } from '@delon/theme';
 import { environment } from '@env/environment';
+import { AuthConfig, TokenDto, ComponentBase, IdentityService } from '@osharp';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzTabChangeEvent } from 'ng-zorro-antd/tabs';
 import { finalize, catchError, EMPTY } from 'rxjs';
-import { AjaxResultType, AuthConfig, TokenDto } from 'src/app/shared/osharp/osharp.types';
-import { ComponentBase } from 'src/app/shared/osharp/services/componentBase';
-import { IdentityService } from 'src/app/shared/osharp/services/identity.service';
 
 @Component({
   selector: 'passport-login',
