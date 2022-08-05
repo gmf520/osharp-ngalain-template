@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { GlobalFooterModule } from '@delon/abc/global-footer';
 import { NoticeIconModule } from '@delon/abc/notice-icon';
+import { ReuseTabModule } from '@delon/abc/reuse-tab';
 import { AlainThemeModule } from '@delon/theme';
 import { LayoutDefaultModule } from '@delon/theme/layout-default';
 import { SettingDrawerModule } from '@delon/theme/setting-drawer';
@@ -52,6 +53,7 @@ const PASSPORT = [LayoutPassportComponent];
     LayoutDefaultModule,
     NoticeIconModule,
     GlobalFooterModule,
+    ReuseTabModule,
     NzDropDownModule,
     NzInputModule,
     NzAutocompleteModule,
