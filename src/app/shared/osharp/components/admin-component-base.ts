@@ -1,6 +1,6 @@
 import { Component, Injector, ViewChild } from '@angular/core';
 import { STColumn, STReq, STRes, STPage, STComponent, STData, STChange, STError, STRequestOptions } from '@delon/abc/st';
-import { AlainService, OsharpService, OsharpSTColumn, PageRequest } from '@osharp';
+import { AlainService, OsharpService, PageRequest } from '@osharp';
 
 @Component({ template: '' })
 export abstract class AdminComponentBase {
@@ -51,7 +51,7 @@ export abstract class AdminComponentBase {
   /**
    * 重写以获取表格的列设置 Columns
    */
-  protected abstract GetSTColumns(): OsharpSTColumn[];
+  protected abstract GetSTColumns(): Array<STColumn<any>>;
 
   protected GetSTReq(request: PageRequest): STReq {
     return this.alain.GetSTReq(request, opt => this.RequestProcess(opt));
