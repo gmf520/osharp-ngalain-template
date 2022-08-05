@@ -5,109 +5,127 @@
   },
   "menu": [{
     "text": "导航菜单",
-    "i18n": "menu.nav",
+    "i18n": "menu.nav.admin.nav",
     "group": true,
     "hideInBreadcrumb": true,
     "children": [{
       "text": "主页",
-      "i18n": "menu.nav.home",
+      "i18n": "menu.nav.admin.home",
       "icon": "anticon-dashboard",
       "link": "/dashboard",
       "acl": "Root.Admin.Dashboard"
     }]
   },{
     "text":"业务模块",
+    "i18n": "menu.nav.admin.business",
     "group": true,
     "hideInBreadcrumb": true,
     "children":[{
       "text":"信息模块",
       "group": true,
+      "i18n": "menu.nav.admin.infos",
       "icon":"anticon-mail",
+      "acl":"Root.Admin.Infos",
       "children":[{
         "text":"站内信管理",
-        "link":"/infos/message"
+        "link":"/infos/message",
+        "i18n":"menu.nav.admin.infos.message",
+        "acl":"Root.Admin.Infos.Message"
       },{
         "text": "站内信接收记录管理",
         "link": "/infos/message-receive",
+        "i18n":"menu.nav.admin.infos.message-receive",
         "acl": "Root.Admin.Infos.MessageReceive"
       }, {
         "text": "站内信回复管理",
         "link": "/infos/message-reply",
+        "i18n":"menu.nav.admin.infos.message-reply",
         "acl": "Root.Admin.Infos.MessageReply"
       }]
     }]
   },{
-    "text":"系统管理",
+    "text":"系统模块",
     "group":true,
+    "i18n":"menu.nav.admin.systems",
     "hideInBreadcrumb": true,
     "children":[{
       "text": "身份认证",
       "group": true,
       "icon": "anticon-user",
+      "i18n":"menu.nav.admin.identity",
       "acl": "Root.Admin.Identity",
       "children": [{
         "text": "用户信息管理",
         "link": "/admin/identity/user",
+        "i18n":"menu.nav.admin.identity.user",
         "acl": "Root.Admin.Identity.User"
       }, {
         "text": "角色信息管理",
         "link": "/admin/identity/role",
+        "i18n":"menu.nav.admin.identity.role",
         "acl": "Root.Admin.Identity.Role"
       }, {
         "text": "用户角色管理",
         "link": "/admin/identity/user-role",
+        "i18n":"menu.nav.admin.identity.user-role",
         "acl": "Root.Admin.Identity.UserRole"
       }]
     }, {
       "text": "权限安全",
       "group": true,
       "icon": "anticon-safety",
+      "i18n":"menu.nav.admin.auth",
       "acl": "Root.Admin.Auth",
       "children": [{
         "text": "模块信息管理",
         "link": "/admin/auth/module",
+        "i18n":"menu.nav.admin.auth.module",
         "acl": "Root.Admin.Auth.Module"
       }, {
         "text": "功能信息管理",
         "link": "/admin/auth/function",
+        "i18n":"menu.nav.admin.auth.function",
         "acl": "Root.Admin.Auth.Function"
       }, {
         "text": "实体信息管理",
         "link": "/admin/auth/entity-info",
+        "i18n":"menu.nav.admin.auth.entity-info",
         "acl": "Root.Admin.Auth.EntityInfo"
       }, {
         "text": "角色数据权限",
         "link": "/admin/auth/role-entity",
+        "i18n":"menu.nav.admin.auth.role-entity",
         "acl": "Root.Admin.Auth.RoleEntity"
       }]
     },{
       "text":"系统管理",
       "group": true,
       "icon": "anticon-desktop",
+      "i18n":"menu.nav.admin.system",
+      "acl": "Root.Admin.Systems",
       "children": [{
         "text": "操作审计",
-        "i18n": "menu.nav.system.systems.audit-operation",
         "link": "/admin/system/audit-operation",
+        "i18n": "menu.nav.admin.system.audit-operation",
         "acl": "Root.Admin.Systems.AuditOperation"
       }, {
         "text": "数据审计",
-        "i18n": "menu.nav.system.systems.audit-entity",
         "link": "/admin/system/audit-entity",
+        "i18n": "menu.nav.admin.system.audit-entity",
         "acl": "Root.Admin.Systems.AuditEntity"
       }, {
         "text": "系统设置",
-        "i18n": "menu.nav.system.systems.settings",
         "link": "/admin/system/settings",
+        "i18n": "menu.nav.admin.system.settings",
         "acl": "Root.Admin.Systems.Settings"
       }, {
         "text": "数据字典",
-        "i18n": "menu.nav.system.systems.data-dictionary",
         "link": "/admin/system/data-dictionary",
-        "acl": "Root.Admin.Systems.KeyValues"
+        "i18n": "menu.nav.admin.system.data-dictionary"
       }, {
         "text": "模块包",
-        "i18n": "menu.nav.system.systems.pack",
         "link": "/admin/system/pack",
+        "i18n": "menu.nav.admin.system.pack",
         "acl": "Root.Admin.Systems.Pack"
       }]
     }]
