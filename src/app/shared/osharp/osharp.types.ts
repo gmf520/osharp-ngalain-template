@@ -38,7 +38,7 @@ export class FilterRule {
    * @param value 属性值
    * @param operate 对比操作
    */
-  constructor(field: string, value: string, operate: FilterOperate = FilterOperate.Equal) {}
+  constructor(public field: string, public value: string | null | number | boolean, public operate: FilterOperate = FilterOperate.Equal) {}
   [key: string]: any;
 }
 /**  查询条件组 */

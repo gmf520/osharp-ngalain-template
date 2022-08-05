@@ -96,7 +96,7 @@ export class DefaultInterceptor implements HttpInterceptor {
     // 1、若请求为刷新Token请求，表示来自刷新Token可以直接跳转登录页
     if ([`/api/identity/token`].some(url => req.url.includes(url))) {
       this.toLogin();
-      return throwError(ev);
+      return of(ev);
     }
     // 2、如果 `refreshToking` 为 `true` 表示已经在请求刷新 Token 中，后续所有请求转入等待状态，直至结果返回后再重新发起请求
     if (!this.refreshToking) {
